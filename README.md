@@ -29,6 +29,10 @@ Para utilizar este projeto, siga os seguintes passos:
 3. Execute o código Python `main.py` em um ambiente Python com as bibliotecas pandas e matplotlib instaladas.
 4. Visualize os gráficos gerados para analisar os dados coletados pelos sensores e a saída do umidificador de ar determinada pela lógica fuzzy através de `src/data.py`.
 
+A partir dos dados salvos em `dados_sensor.csv` foi possível obter como exemplo esse tipo de visualização de dados salva em `src/image/data.png`:
+
+![Dados Coletados](src/image/data.png)
+
 ## Contribuições
 
 Contribuições são bem-vindas! Sinta-se à vontade para abrir uma issue ou enviar um pull request.
