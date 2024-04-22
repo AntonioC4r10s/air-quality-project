@@ -1,8 +1,8 @@
 #include <Fuzzy.h>
 #include <DHT.h>
 
-// Definindo as portas do ventilador e dos sensores
-#define FAN_PIN 9
+// Definindo as portas do umidificador e dos sensores
+#define HUMIDIFIER_PIN 9
 #define CO2_SENSOR_PIN A0
 #define CO_SENSOR_PIN A2
 #define HUMIDITY_SENSOR_PIN A1
@@ -16,20 +16,18 @@ DHT dht(HUMIDITY_SENSOR_PIN, DHTTYPE);
 // Instanciando um objeto Fuzzy
 Fuzzy *fuzzy = new Fuzzy();
 
-// Função para combinar antecedentes de regras difusas usando AND
-FuzzyRuleAntecedent* andAntecedents(FuzzyRuleAntecedent* antecedent1, FuzzyRuleAntecedent* antecedent2, FuzzyRuleAntecedent* antecedent3) {
-  FuzzyRuleAntecedent* result = new FuzzyRuleAntecedent();
-  result->joinWithAND(antecedent1, antecedent2);
-  result->joinWithAND(result, antecedent3);
-  return result;
+// Função para gerar valores aleatórios para CO e CO2
+float gerarValorAleatorio() {
+  // Gera um valor aleatório entre 0 e 1023
+  return random(0, 1024);
 }
 
 void setup() {
   // Inicializando a comunicação serial
   Serial.begin(9600);
 
-  // Definindo o pino do ventilador como saída
-  pinMode(FAN_PIN, OUTPUT);
+  // Definindo o pino do umidificador como saída
+  pinMode(HUMIDIFIER_PIN, OUTPUT);
 
   // Definindo umidade como variável de entrada
   FuzzyInput *humidity = new FuzzyInput(1);
@@ -61,30 +59,28 @@ void setup() {
   co->addFuzzySet(highCO);
   fuzzy->addFuzzyInput(co);
 
-  // Definindo velocidade do ventilador como variável de saída
-  FuzzyOutput *fanSpeed = new FuzzyOutput(1);
-  FuzzySet *lowSpeed = new FuzzySet(0, 30, 30, 60);
-  FuzzySet *mediumSpeed = new FuzzySet(40, 70, 70, 100);
-  FuzzySet *highSpeed = new FuzzySet(60, 100, 100, 100);
-  fanSpeed->addFuzzySet(lowSpeed);
-  fanSpeed->addFuzzySet(mediumSpeed);
-  fanSpeed->addFuzzySet(highSpeed);
-  fuzzy->addFuzzyOutput(fanSpeed);
+  // Definindo potência do umidificador como variável de saída
+  FuzzyOutput *humidifierPower = new FuzzyOutput(1);
+  FuzzySet *offPower = new FuzzySet(0, 0, 0, 0);
+  FuzzySet *normalPower = new FuzzySet(0, 50, 50, 100);
+  FuzzySet *maxPower = new FuzzySet(50, 100, 100, 100);
+  humidifierPower->addFuzzySet(offPower);
+  humidifierPower->addFuzzySet(normalPower);
+  humidifierPower->addFuzzySet(maxPower);
+  fuzzy->addFuzzyOutput(humidifierPower);
 
   // Definindo regras fuzzy
   FuzzyRuleAntecedent *ifLowHumidity = new FuzzyRuleAntecedent();
-  ifLowHumidity->joinSingle(lowHumidity);
   FuzzyRuleAntecedent *ifHighCO2 = new FuzzyRuleAntecedent();
-  ifHighCO2->joinSingle(highCO2);
   FuzzyRuleAntecedent *ifLowCO = new FuzzyRuleAntecedent();
-  ifLowCO->joinSingle(lowCO);
-  FuzzyRuleAntecedent* combinedAntecedents = andAntecedents(ifLowHumidity, ifHighCO2, ifLowCO);
-  FuzzyRuleConsequent *thenHighFanSpeed = new FuzzyRuleConsequent();
-  thenHighFanSpeed->addOutput(highSpeed);
-  FuzzyRule *rule1 = new FuzzyRule(1, combinedAntecedents, thenHighFanSpeed);
+  FuzzyRuleAntecedent *combinedAntecedents = new FuzzyRuleAntecedent();
+  combinedAntecedents->joinSingle(lowHumidity);
+  combinedAntecedents->joinSingle(highCO2);
+  combinedAntecedents->joinSingle(lowCO);
+  FuzzyRuleConsequent *thenMaxPower = new FuzzyRuleConsequent();
+  thenMaxPower->addOutput(maxPower);
+  FuzzyRule *rule1 = new FuzzyRule(1, combinedAntecedents, thenMaxPower);
   fuzzy->addFuzzyRule(rule1);
-
-  // Adicione mais regras conforme necessário para outros casos
 
   dht.begin();
 }
@@ -92,16 +88,9 @@ void setup() {
 void loop() {
   // Lendo os valores de umidade, CO2 e CO usando os sensores
   float humidityValue = dht.readHumidity();
-  float co2Value = analogRead(CO2_SENSOR_PIN);
-  float coValue = analogRead(CO_SENSOR_PIN);
-
-  // Imprimindo os valores lidos
-  Serial.print("Umidade: ");
-  Serial.println(humidityValue);
-  Serial.print("CO2: ");
-  Serial.println(co2Value);
-  Serial.print("CO: ");
-  Serial.println(coValue);
+  float co2Value = gerarValorAleatorio(); // Usando a função para gerar um valor aleatório
+  float coValue = gerarValorAleatorio(); // Usando a função para gerar um valor aleatório
+  float temperatureValue = dht.readTemperature(); // Lendo a temperatura
 
   // Configurando as entradas do sistema fuzzy
   fuzzy->setInput(1, humidityValue);
@@ -110,14 +99,22 @@ void loop() {
 
   // Executando o processo de fuzzificação e defuzzificação
   fuzzy->fuzzify();
-  float fanSpeed = fuzzy->defuzzify(1);
+  float powerLevel = fuzzy->defuzzify(1);
 
-  // Imprimindo a velocidade do ventilador
-  Serial.print("Velocidade do Ventilador: ");
-  Serial.println(fanSpeed);
+  // Controlando o nível de potência do umidificador
+  if (powerLevel <= 0) {
+    digitalWrite(HUMIDIFIER_PIN, LOW); // Desliga o umidificador
+  } else if (powerLevel <= 50) {
+    analogWrite(HUMIDIFIER_PIN, 128); // Liga o umidificador em potência normal
+  } else {
+    analogWrite(HUMIDIFIER_PIN, 255); // Liga o umidificador na máxima potência
+  }
 
-  // Controlando a velocidade do ventilador
-  analogWrite(FAN_PIN, fanSpeed);
+  // Criando uma string formatada com todas as informações
+  String output = "Temperatura: " + String(temperatureValue) + ", Umidade: " + String(humidityValue) + ", CO2: " + String(co2Value) + ", CO: " + String(coValue) + ", Nível de Potência do Umidificador: " + String(powerLevel);
+
+  // Enviando a string pela porta serial
+  Serial.println(output);
 
   // Aguardando um intervalo antes da próxima leitura
   delay(1000); // Ajuste conforme necessário
