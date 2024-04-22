@@ -39,5 +39,6 @@ for i, ax in enumerate(axs.flat):
     else:
         ax.axis('off')  # Desativa os eixos para os subplots vazios
 
+plt.savefig('src\image/data.png')
 plt.tight_layout()
 plt.show()
