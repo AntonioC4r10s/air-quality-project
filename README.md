@@ -12,7 +12,7 @@ O código Arduino, encontrado em `sensor_fuzzy.ino`, é responsável por:
 
 ## Python
 
-O código Python, encontrado em `plotar_graficos.py`, realiza as seguintes tarefas:
+O código Python, encontrado em `src/main.py` e `src/data.py`, realiza as seguintes respectivamente as tarefas:
 
 - Recebe os dados enviados pelo Arduino pela porta serial.
 - Armazena esses dados em um arquivo CSV para análise posterior.
@@ -26,8 +26,8 @@ Para utilizar este projeto, siga os seguintes passos:
 
 1. Carregue o código Arduino `sensor_fuzzy.ino` em um microcontrolador Arduino.
 2. Conecte os sensores de temperatura, umidade, CO2 e CO ao Arduino.
-3. Execute o código Python `plotar_graficos.py` em um ambiente Python com as bibliotecas pandas e matplotlib instaladas.
-4. Visualize os gráficos gerados para analisar os dados coletados pelos sensores e a saída do umidificador de ar determinada pela lógica fuzzy.
+3. Execute o código Python `main.py` em um ambiente Python com as bibliotecas pandas e matplotlib instaladas.
+4. Visualize os gráficos gerados para analisar os dados coletados pelos sensores e a saída do umidificador de ar determinada pela lógica fuzzy através de `src/data.py`.
 
 ## Contribuições
 
